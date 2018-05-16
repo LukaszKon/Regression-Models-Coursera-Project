@@ -1,0 +1,92 @@
+---
+title: "Influence of transmission type on MPG"
+author: "Lukasz Konczyk"
+date: "13 maja 2018"
+output: pdf_document
+---
+
+##1. Explotatory data analysis
+
+###Introduction
+
+In this report, we are focused on which type of transmission: automatic or manual, has better influence on MPG. Data which are used to analysis comes from *mtcars* dataset from basic R library.
+
+###Data loading and brief summary
+
+First thing to do, is loading dataset and briefly look at this.
+
+```{r ,echo=TRUE}
+data(mtcars)
+str(mtcars)
+```
+
+We are trying to answer the question if an automatic or manual transmission is better for MPG. In our data we will used variables **mpg** and **am** in first basic model. Variable **am** will be used as factor with two values: 0 for automatic transmission and 1 for manual transmission. Variable **mpg** is continous variable with positive values. Let's have a look on plots below to see any pattern.
+
+
+```{r, echo=TRUE}
+par(mfrow=c(1,2))
+with(mtcars,boxplot(mpg~factor(am,labels=c("automatic","manual")),col=c("red4","green4"),xlab="Transmission type",
+                    ylab="Miles per galon value",main="Boxplot: mpg ~ transmission"))
+with(mtcars, plot(mpg,col=am+1,ylab="Miles per galon",main="Explotary plot"))
+legend("topleft", legend=c("automatic","manual"), col=1:2,cex=0.7,lty=1)
+```
+
+Looking at plots above, we can observe that manual transmission cause larger use of fuel expressed by miles per galon (MPG). But if there exist any linear relationship between fuel usage and transmission type? We will try answer this question using linear regression models. Also we will try what is difference in average mpg value for automatic and manual transmission.
+
+##2. Linear regression model fitting
+
+###Model with only two variable
+
+Let's look on the most basic model.
+
+```{r, echo=TRUE}
+fit<-lm(mpg~factor(am),data=mtcars)
+summary(fit)
+```
+
+Quick look on coefficients. Intercept coefficient is equal `r fit$coef[1]` - and according to linear model theory it is mean value of **mpg** for automatic transmission. Scope coefficient is equal `r fit$coef[2]` and it is equal of increase in average **mpg** for manual transmission, so average **mpg** for manual transmission is sum of coefs: `r sum(fit$coef)`. P-values in summary for coefficients is significant less than 0.05 border and in both cases hypothesis of 0 value of coef is rejected. We can see that R squared value, which tell us how good model explains variance in model, is equal `r summary(fit)$r.squared`. It is a little small value - only third part of variance is explained by model. We will try to find better model with multivariable models.
+
+###Multivariable regression model
+
+At the begining we plot comparision plots to see which variables are linear with **mpg** variable
+
+```{r, echo=TRUE}
+with(mtcars, plot(mtcars))
+```
+
+Looking at the plot we can see that there exist strong linear relationship between **mpg** and **cyl**, **disp**, **hp**, **wt** and **am** variables and we will use they to new model.
+
+```{r, echo=TRUE}
+fit1<-lm(mpg~factor(cyl)+disp+hp+wt+factor(am), data=mtcars)
+summary(fit1)
+```
+
+Let's do some diagnostics. First of all, we see if there are some outliers or influential observation. We use leverages and Cook's distance respectively.
+
+```{r, echo=TRUE}
+sort(hatvalues(fit1),decreasing = T)[1:5]
+sort(cooks.distance(fit1),decreasing=T)[1:5]
+```
+
+Analysing the biggest leverages values, we could indicate one obesrvation which could be the outlier but hat values is quit similar to others. There are no influential observation according to Cook's distance. Now we try examinate how residuals like and normality of residuals.
+
+```{r, echo=TRUE}
+par(mfrow=c(1,2))
+qqnorm(y=resid(fit1))
+qqline(resid(fit1))
+plot(fit1$fitted, resid(fit1), main="Residuals plot", xlab="Fitted values", ylab="Residuals")
+abline(h=0)
+```
+We can say, that the residuals' variance is constant without any pattern. Also we can say that they are normal but it could be provide with Shapiro Test.
+```{r, echo=TRUE}
+shapiro.test(resid(fit1))
+```
+P value is greater that 5% border, so we can find that residuals are normal. At the end of diagnostic, we check if multivariable model is better than one variable model.
+```{r, echo=TRUE}
+anova(fit,fit1)
+```
+Test gives p value less than 0.05 and cause that "reacher" model with additional variables better describes relationship between MPG and transmission type.
+
+##3. Summary
+
+Analysis above proves that to describe on which variables depends MPG, transmission type is not sufficient. Much better effects are with additional variables. Diagnostic methods proves, that model is fitted properly. Both models point that automatic transmission is better for fuel use. Less MPG indicates less pollution in environment and more kilometers driven with full tank - only adventages. Automatic transmission is better customize by computer than any human and this is cause of better results with automatic transmission.
